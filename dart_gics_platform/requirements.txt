@@ -1,0 +1,6 @@
+requests
+pandas
+pyarrow
+python-dotenv
+openpyxl
+XlsxWriter

@@ -4,8 +4,9 @@ from ingest.corp_master import fetch_and_save_corp_master
 from ingest.fin_statements import backfill_financials
 from ingest.events import backfill_events
 from ingest.prices import build_mcap_snapshot
-from transform.gics_map import apply_gics_mapping
+from ingest.events_detail import enrich_events_detail
 from export.excel_book import build_excel_book
+from transform.gics_map import apply_gics_mapping
 
 def main():
     parser = argparse.ArgumentParser(
@@ -16,6 +17,11 @@ def main():
     p_boot = sub.add_parser("bootstrap", help="Download corp master (corp_code.xml)")
     p_boot.add_argument("--out", default="data/corp_master.parquet")
 
+    p_map = sub.add_parser("map_gics", help="Apply GICS mapping to corp master")
+    p_map.add_argument("--corp", default="data/corp_master.parquet")
+    p_map.add_argument("--out", default="data/corp_master_gics.parquet")
+    p_map.add_argument("--csv", default="", help="optional CSV mapping file")
+
     p_fin = sub.add_parser("backfill_financials", help="Backfill financial statements (2015~)")
     p_fin.add_argument("--start", type=int, default=2015)
     p_fin.add_argument("--end", type=int, default=2025)
@@ -25,38 +31,41 @@ def main():
     p_evt.add_argument("--years", type=int, default=10)
     p_evt.add_argument("--out", default="data/events.parquet")
 
-    # NEW: mcap snapshot
+    # NEW: enrich events with amount/counterparty/summary
+    p_evt2 = sub.add_parser("enrich_events", help="Enrich events with amount/counterparty/summary by parsing document.xml/viewer")
+    p_evt2.add_argument("--inpath", default="data/events.parquet")
+    p_evt2.add_argument("--out", default="data/events.parquet")
+
     p_mcap = sub.add_parser("build_mcap", help="Build market cap snapshot for a given date (YYYY-MM-DD)")
     p_mcap.add_argument("--date", required=True, help="Reference date like 2024-12-31")
     p_mcap.add_argument("--out", default="data/mcap_snapshot.parquet")
 
-
-    p_gics = sub.add_parser("apply_gics", help="Apply GICS classification to corp master")
-    p_gics.add_argument("--corp", default="data/corp_master.parquet", help="Input corp master parquet")
-    p_gics.add_argument("--out", default="data/corp_master.parquet", help="Output parquet with GICS columns")
-    p_gics.add_argument("--mapping", default="data/gics_mapping.csv", help="Optional CSV mapping table")
     p_xls = sub.add_parser("export_excel", help="Build Excel book from current snapshots")
     p_xls.add_argument("--fin", default="data/fin_statements.parquet")
     p_xls.add_argument("--events", default="data/events.parquet")
-    p_xls.add_argument("--corp", default="data/corp_master.parquet")
+    p_xls.add_argument("--corp", default="data/corp_master_gics.parquet")
     p_xls.add_argument("--mcap", default="data/mcap_snapshot.parquet")
     p_xls.add_argument("--macro", default="data/macro_panel.parquet")
     p_xls.add_argument("--out", default="output/Corporate_Macro_Dashboard.xlsx")
     p_xls.add_argument("--year", type=int, default=2024)
+    p_xls.add_argument("--gics_level", default="gics_industry",
+                       help="gics_sector|gics_industry_group|gics_industry|gics_sub_industry")
 
     args = parser.parse_args()
     env = load_env()
 
     if args.cmd == "bootstrap":
         fetch_and_save_corp_master(env, args.out)
+    elif args.cmd == "map_gics":
+        apply_gics_mapping(args.corp, args.out, mapping_csv=args.csv)
     elif args.cmd == "backfill_financials":
         backfill_financials(env, start_year=args.start, end_year=args.end, out_path=args.out)
     elif args.cmd == "backfill_events":
         backfill_events(env, years=args.years, out_path=args.out)
+    elif args.cmd == "enrich_events":
+        enrich_events_detail(env, events_in=args.inpath, events_out=args.out)
     elif args.cmd == "build_mcap":
         build_mcap_snapshot(env, date_ref=args.date, out_path=args.out)
-    elif args.cmd == "apply_gics":
-        apply_gics_mapping(args.corp, args.out, mapping_csv=args.mapping)
     elif args.cmd == "export_excel":
         build_excel_book(
             env,
@@ -67,6 +76,7 @@ def main():
             macro_path=args.macro,
             out_path=args.out,
             focus_year=args.year,
+            gics_level=args.gics_level,
         )
 
 if __name__ == "__main__":

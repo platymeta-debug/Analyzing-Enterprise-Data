@@ -34,3 +34,20 @@ class DartClient:
         if str(j.get("status","")) == "000":
             return j
         return {}
+
+    def get_document_xml(self, rcept_no: str) -> bytes:
+        """
+        OpenDART document.xml (문서 메타). 첨부파일/본문 파일 리스트를 XML로 제공.
+        참고: https://opendart.fss.or.kr/api/document.xml?crtfc_key=...&rcept_no=...
+        """
+        url = f"https://opendart.fss.or.kr/api/document.xml"
+        p = {"crtfc_key": self.api_key, "rcept_no": rcept_no}
+        r = requests.get(url, params=p, timeout=60)
+        r.raise_for_status()
+        return r.content
+
+    def get_binary(self, url: str) -> bytes:
+        """첨부/본문 파일(HTML/XBRL 등) 바이너리 다운로드 헬퍼."""
+        r = requests.get(url, timeout=60)
+        r.raise_for_status()
+        return r.content

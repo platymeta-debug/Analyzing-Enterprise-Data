@@ -30,11 +30,11 @@ def main():
     p_mcap.add_argument("--date", required=True, help="Reference date like 2024-12-31")
     p_mcap.add_argument("--out", default="data/mcap_snapshot.parquet")
 
+
     p_gics = sub.add_parser("apply_gics", help="Apply GICS classification to corp master")
     p_gics.add_argument("--corp", default="data/corp_master.parquet", help="Input corp master parquet")
     p_gics.add_argument("--out", default="data/corp_master.parquet", help="Output parquet with GICS columns")
     p_gics.add_argument("--mapping", default="data/gics_mapping.csv", help="Optional CSV mapping table")
-
     p_xls = sub.add_parser("export_excel", help="Build Excel book from current snapshots")
     p_xls.add_argument("--fin", default="data/fin_statements.parquet")
     p_xls.add_argument("--events", default="data/events.parquet")

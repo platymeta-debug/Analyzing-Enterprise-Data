@@ -3,6 +3,7 @@ from common.config import load_env
 from ingest.corp_master import fetch_and_save_corp_master
 from ingest.fin_statements import backfill_financials
 from ingest.events import backfill_events
+from ingest.prices import build_mcap_snapshot
 from export.excel_book import build_excel_book
 
 def main():
@@ -23,6 +24,11 @@ def main():
     p_evt.add_argument("--years", type=int, default=10)
     p_evt.add_argument("--out", default="data/events.parquet")
 
+    # NEW: mcap snapshot
+    p_mcap = sub.add_parser("build_mcap", help="Build market cap snapshot for a given date (YYYY-MM-DD)")
+    p_mcap.add_argument("--date", required=True, help="Reference date like 2024-12-31")
+    p_mcap.add_argument("--out", default="data/mcap_snapshot.parquet")
+
     p_xls = sub.add_parser("export_excel", help="Build Excel book from current snapshots")
     p_xls.add_argument("--fin", default="data/fin_statements.parquet")
     p_xls.add_argument("--events", default="data/events.parquet")
@@ -41,6 +47,8 @@ def main():
         backfill_financials(env, start_year=args.start, end_year=args.end, out_path=args.out)
     elif args.cmd == "backfill_events":
         backfill_events(env, years=args.years, out_path=args.out)
+    elif args.cmd == "build_mcap":
+        build_mcap_snapshot(env, date_ref=args.date, out_path=args.out)
     elif args.cmd == "export_excel":
         build_excel_book(
             env,

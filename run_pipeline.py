@@ -1,0 +1,57 @@
+import argparse
+from common.config import load_env
+from ingest.corp_master import fetch_and_save_corp_master
+from ingest.fin_statements import backfill_financials
+from ingest.events import backfill_events
+from export.excel_book import build_excel_book
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="OpenDART + GICS Analytics Pipeline"
+    )
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_boot = sub.add_parser("bootstrap", help="Download corp master (corp_code.xml)")
+    p_boot.add_argument("--out", default="data/corp_master.parquet")
+
+    p_fin = sub.add_parser("backfill_financials", help="Backfill financial statements (2015~)")
+    p_fin.add_argument("--start", type=int, default=2015)
+    p_fin.add_argument("--end", type=int, default=2025)
+    p_fin.add_argument("--out", default="data/fin_statements.parquet")
+
+    p_evt = sub.add_parser("backfill_events", help="Backfill major events (defaults last 10y)")
+    p_evt.add_argument("--years", type=int, default=10)
+    p_evt.add_argument("--out", default="data/events.parquet")
+
+    p_xls = sub.add_parser("export_excel", help="Build Excel book from current snapshots")
+    p_xls.add_argument("--fin", default="data/fin_statements.parquet")
+    p_xls.add_argument("--events", default="data/events.parquet")
+    p_xls.add_argument("--corp", default="data/corp_master.parquet")
+    p_xls.add_argument("--mcap", default="data/mcap_snapshot.parquet")
+    p_xls.add_argument("--macro", default="data/macro_panel.parquet")
+    p_xls.add_argument("--out", default="output/Corporate_Macro_Dashboard.xlsx")
+    p_xls.add_argument("--year", type=int, default=2024)
+
+    args = parser.parse_args()
+    env = load_env()
+
+    if args.cmd == "bootstrap":
+        fetch_and_save_corp_master(env, args.out)
+    elif args.cmd == "backfill_financials":
+        backfill_financials(env, start_year=args.start, end_year=args.end, out_path=args.out)
+    elif args.cmd == "backfill_events":
+        backfill_events(env, years=args.years, out_path=args.out)
+    elif args.cmd == "export_excel":
+        build_excel_book(
+            env,
+            fin_path=args.fin,
+            events_path=args.events,
+            corp_path=args.corp,
+            mcap_path=args.mcap,
+            macro_path=args.macro,
+            out_path=args.out,
+            focus_year=args.year,
+        )
+
+if __name__ == "__main__":
+    main()

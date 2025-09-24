@@ -74,3 +74,19 @@ def add_dropdown(ws, first_row, first_col, last_row, last_col, options: List[str
 def define_name(wb, name: str, formula: str):
     # 예: define_name(wb, "SelectedMetric", "Dashboard_Combined!$C$4")
     wb.define_name(f"{name}={formula}")
+
+
+def set_default_look(wb, *, base_font="맑은 고딕", base_size=10):
+    """
+    XlsxWriter는 워크북 전역 폰트 설정이 제한적이라, 자주 쓰는 포맷만 생성해서 재사용.
+    """
+    fmts = {
+        "title": wb.add_format({"bold": True, "font_size": 14}),
+        "header": wb.add_format({"bold": True, "bg_color": "#F2F2F2", "border": 1}),
+        "subtle": wb.add_format({"font_color": "#666666"}),
+        "pct": wb.add_format({"num_format": "0.00%"}),
+        "int": wb.add_format({"num_format": "#,##0"}),
+        "krw": wb.add_format({"num_format": "#,##0;[Red]-#,##0"}),
+        "small": wb.add_format({"font_size": 9, "italic": True, "font_color": "#777777"}),
+    }
+    return fmts

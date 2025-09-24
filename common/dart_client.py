@@ -27,3 +27,10 @@ class DartClient:
         r = requests.get(url, params=p, timeout=60)
         r.raise_for_status()
         return r.content
+
+    def get_ok(self, endpoint: str, params: dict):
+        """status=='000'만 반환, 그 외는 빈 dict"""
+        j = self.get(endpoint, params)
+        if str(j.get("status","")) == "000":
+            return j
+        return {}
